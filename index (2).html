@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<title>Калькулятор авитолога</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root {
+  --bg: #0f0f0f;
+  --surface: #1a1a1a;
+  --surface2: #232323;
+  --border: rgba(255,255,255,0.08);
+  --border2: rgba(255,255,255,0.14);
+  --text: #f0f0f0;
+  --muted: #888;
+  --hint: #555;
+  --green: #22c55e;
+  --green-dim: rgba(34,197,94,0.12);
+  --green-border: rgba(34,197,94,0.35);
+  --radius: 12px;
+  --radius-sm: 8px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html { background: var(--bg); }
+body {
+  font-family: -apple-system, 'SF Pro Text', 'Segoe UI', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  padding: 0 0 80px;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+/* Header */
+.header {
+  padding: 20px 16px 12px;
+  border-bottom: 0.5px solid var(--border);
+}
+.header-label {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+.header-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* Sections */
+.section { padding: 16px; }
+.section + .section { padding-top: 0; }
+.label {
+  font-size: 12px;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+/* Type toggle */
+.type-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+.type-btn {
+  padding: 11px 8px;
+  border-radius: var(--radius-sm);
+  border: 0.5px solid var(--border2);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: center;
+  transition: all .15s;
+}
+.type-btn.active {
+  border-color: var(--green-border);
+  background: var(--green-dim);
+  color: var(--green);
+}
+
+/* Slider block */
+.slider-block {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 14px;
+  margin-bottom: 10px;
+}
+.slider-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 12px;
+}
+.slider-title { font-size: 14px; color: var(--text); }
+.slider-val {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--green);
+  min-width: 40px;
+  text-align: right;
+}
+input[type=range] {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--border2);
+  outline: none;
+  cursor: pointer;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--green);
+  border: 3px solid var(--bg);
+  box-shadow: 0 0 0 1px var(--green);
+  cursor: pointer;
+}
+
+/* Kef info */
+.kef-pill {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--surface2);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  margin-bottom: 16px;
+}
+.kef-pill-left { font-size: 13px; color: var(--muted); }
+.kef-pill-right { font-size: 13px; font-weight: 600; color: var(--text); }
+
+/* Stages */
+.stages-title {
+  font-size: 12px;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0 16px;
+  margin-bottom: 8px;
+}
+.stage-card {
+  margin: 0 16px 8px;
+  background: var(--surface);
+  border-radius: var(--radius);
+  border: 0.5px solid var(--border);
+  overflow: hidden;
+}
+.stage-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 13px 14px;
+  cursor: pointer;
+  gap: 8px;
+}
+.stage-left { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+.stage-num {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--surface2);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.stage-name {
+  font-size: 14px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.stage-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.stage-price { font-size: 13px; font-weight: 600; color: var(--text); }
+.stage-arrow {
+  width: 16px;
+  height: 16px;
+  color: var(--hint);
+  transition: transform .2s;
+  flex-shrink: 0;
+}
+.stage-arrow.open { transform: rotate(180deg); }
+.stage-body {
+  border-top: 0.5px solid var(--border);
+  padding: 10px 14px;
+  display: none;
+}
+.stage-body.open { display: block; }
+.stage-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  gap: 8px;
+}
+.stage-item + .stage-item { border-top: 0.5px solid var(--border); }
+.item-name { font-size: 13px; color: var(--muted); flex: 1; }
+.item-free {
+  font-size: 11px;
+  color: var(--green);
+  background: var(--green-dim);
+  padding: 2px 8px;
+  border-radius: 20px;
+  flex-shrink: 0;
+}
+.item-cost { font-size: 13px; color: var(--text); flex-shrink: 0; }
+
+/* Auto toggle */
+.auto-row {
+  margin: 0 16px 8px;
+  background: var(--surface);
+  border-radius: var(--radius);
+  border: 0.5px solid var(--border);
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.auto-info { flex: 1; }
+.auto-name { font-size: 14px; color: var(--text); margin-bottom: 2px; }
+.auto-desc { font-size: 12px; color: var(--muted); }
+.switch {
+  width: 44px;
+  height: 26px;
+  border-radius: 13px;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  position: relative;
+  cursor: pointer;
+  transition: background .2s, border-color .2s;
+  flex-shrink: 0;
+}
+.switch.on { background: var(--green); border-color: var(--green); }
+.switch-knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  transition: left .2s;
+}
+.switch.on .switch-knob { left: 21px; }
+
+/* Divider */
+.divider { height: 0.5px; background: var(--border); margin: 8px 16px; }
+
+/* Result */
+.result-block {
+  margin: 0 16px;
+  background: var(--surface);
+  border-radius: var(--radius);
+  border: 0.5px solid var(--border);
+  padding: 14px;
+}
+.result-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 5px 0;
+}
+.result-row-label { font-size: 13px; color: var(--muted); }
+.result-row-val { font-size: 13px; font-weight: 500; color: var(--text); }
+.result-divider { height: 0.5px; background: var(--border); margin: 10px 0; }
+.result-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.result-total-label { font-size: 16px; font-weight: 600; color: var(--text); }
+.result-total-val { font-size: 26px; font-weight: 700; color: var(--green); }
+
+/* Bottom bar */
+.bottom-bar {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  padding: 12px 16px;
+  background: var(--bg);
+  border-top: 0.5px solid var(--border);
+}
+.copy-btn {
+  width: 100%;
+  padding: 14px;
+  border-radius: var(--radius);
+  background: var(--green);
+  border: none;
+  color: #000;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: opacity .15s;
+}
+.copy-btn:active { opacity: 0.85; }
+.copy-btn svg { width: 18px; height: 18px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-label">Авитолог</div>
+  <div class="header-title">Расчёт стоимости</div>
+</div>
+
+<div class="section">
+  <div class="label">Категория</div>
+  <div class="type-toggle">
+    <button class="type-btn active" id="btn-service" onclick="setType('service')">Услуги</button>
+    <button class="type-btn" id="btn-goods" onclick="setType('goods')">Товары</button>
+  </div>
+
+  <div class="slider-block">
+    <div class="slider-top">
+      <span class="slider-title">Количество позиций</span>
+      <span class="slider-val" id="pos-val">1</span>
+    </div>
+    <input type="range" id="pos-slider" min="1" max="10" step="1" value="1" oninput="updatePos(this.value)"/>
+  </div>
+
+  <div class="kef-pill">
+    <span class="kef-pill-left">Коэффициент <span id="kef-val">1.1</span> · работа</span>
+    <span class="kef-pill-right" id="work-price">33 000 ₽</span>
+  </div>
+</div>
+
+<div class="stages-title">Состав услуг</div>
+<div id="stages-list"></div>
+
+<div class="divider"></div>
+
+<div class="auto-row">
+  <div class="auto-info">
+    <div class="auto-name">Автоматизация</div>
+    <div class="auto-desc">5 этап · XML-фид, автоответы, CRM, чат-бот</div>
+  </div>
+  <div class="switch" id="auto-sw" onclick="toggleAuto()"><div class="switch-knob"></div></div>
+</div>
+
+<div class="divider"></div>
+
+<div class="result-block">
+  <div class="result-row">
+    <span class="result-row-label">Базовая ставка</span>
+    <span class="result-row-val">30 000 ₽</span>
+  </div>
+  <div class="result-row">
+    <span class="result-row-label">За позиции (×<span id="r-kef">1.1</span>)</span>
+    <span class="result-row-val" id="r-add">+3 000 ₽</span>
+  </div>
+  <div class="result-row" id="r-auto-row" style="display:none">
+    <span class="result-row-label">Автоматизация</span>
+    <span class="result-row-val">+10 000 ₽</span>
+  </div>
+  <div class="result-divider"></div>
+  <div class="result-total">
+    <span class="result-total-label">Итого</span>
+    <span class="result-total-val" id="total-val">33 000 ₽</span>
+  </div>
+</div>
+
+<div class="bottom-bar">
+  <button class="copy-btn" onclick="sendResult()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/>
+    </svg>
+    Отправить расчёт
+  </button>
+</div>
+
+<script>
+const tg = window.Telegram && window.Telegram.WebApp;
+if (tg) { tg.ready(); tg.expand(); }
+
+const STAGES = [
+  { title: 'Анализ ниши и конкурентов', price: 10000, items: [
+    { name: 'Расчёт рекламного бюджета', price: 0 },
+    { name: 'Сегментация объявлений', price: 0 },
+    { name: 'Анализ ЦА, УТП и офферы', price: 2000 },
+    { name: 'Парсинг конкурентов', price: 3000 },
+    { name: 'Ключевые слова для SEO', price: 2000 },
+    { name: 'Продающие тексты и заголовки', price: 3000 },
+  ]},
+  { title: 'Настройка и упаковка профиля', price: 10000, items: [
+    { name: 'Создание аккаунта', price: 0 },
+    { name: 'Подключение тарифа и реквизитов', price: 0 },
+    { name: 'Заполнение профиля, портфолио', price: 1000 },
+    { name: 'Подбор фото и визуала', price: 1000 },
+    { name: 'Дизайн инфографики', price: 5000 },
+    { name: 'Баннер Авито-магазина', price: 3000 },
+  ]},
+  { title: 'Аналитика и оптимизация', price: 5000, items: [
+    { name: 'Стратегия продвижения', price: 0 },
+    { name: 'Настройка Авито Pro / Ads', price: 0 },
+    { name: 'A/B-тестирование', price: 2000 },
+    { name: 'Управление бюджетом', price: 1000 },
+    { name: 'Оптимизация под алгоритмы', price: 1000 },
+    { name: 'Масштабирование по городам', price: 1000 },
+  ]},
+  { title: 'Мониторинг и конверсии', price: 5000, items: [
+    { name: 'Ежедневный контроль Авито', price: 0 },
+    { name: 'Работа с отзывами и рейтингом', price: 0 },
+    { name: 'Отчётность в цифрах', price: 0 },
+    { name: 'Замена неэффективных объявлений', price: 3000 },
+    { name: 'Коллтрекинг', price: 1000 },
+    { name: 'Работа с поддержкой при блокировках', price: 1000 },
+  ]},
+];
+
+const serviceMap = {1:1.1,2:1.2,3:1.3,4:1.4,5:1.5,6:1.6,7:1.7,8:1.8,9:1.9,10:2.0};
+const goodsMap   = {10:1.5,20:2.0,30:2.5,40:3.0,50:3.5,60:4.0,70:4.5,80:5.0,90:5.5,100:6.0};
+
+let type = 'service', pos = 1, autoOn = false, expanded = {};
+
+function getKef() {
+  return type === 'service' ? (serviceMap[pos] || 1.1) : (goodsMap[pos] || 1.5);
+}
+
+function fmt(n) { return n.toLocaleString('ru-RU') + ' ₽'; }
+
+function setType(t) {
+  type = t;
+  document.getElementById('btn-service').classList.toggle('active', t === 'service');
+  document.getElementById('btn-goods').classList.toggle('active', t === 'goods');
+  const sl = document.getElementById('pos-slider');
+  if (t === 'goods') { sl.min=10; sl.max=100; sl.step=10; sl.value=10; pos=10; }
+  else               { sl.min=1;  sl.max=10;  sl.step=1;  sl.value=1;  pos=1;  }
+  document.getElementById('pos-val').textContent = sl.value;
+  updateCalc();
+}
+
+function updatePos(v) {
+  pos = parseInt(v);
+  document.getElementById('pos-val').textContent = v;
+  updateCalc();
+}
+
+function toggleAuto() {
+  autoOn = !autoOn;
+  document.getElementById('auto-sw').classList.toggle('on', autoOn);
+  document.getElementById('r-auto-row').style.display = autoOn ? 'flex' : 'none';
+  updateCalc();
+}
+
+function updateCalc() {
+  const kef   = getKef();
+  const base  = 30000;
+  const work  = Math.round(base * kef);
+  const add   = work - base;
+  const total = work + (autoOn ? 10000 : 0);
+  document.getElementById('kef-val').textContent    = kef.toFixed(1);
+  document.getElementById('work-price').textContent = fmt(work);
+  document.getElementById('r-kef').textContent      = kef.toFixed(1);
+  document.getElementById('r-add').textContent      = '+' + fmt(add);
+  document.getElementById('total-val').textContent  = fmt(total);
+}
+
+function renderStages() {
+  const cont = document.getElementById('stages-list');
+  cont.innerHTML = '';
+  STAGES.forEach((s, i) => {
+    const isOpen = !!expanded[i];
+    const card = document.createElement('div');
+    card.className = 'stage-card';
+    card.innerHTML = `
+      <div class="stage-header" onclick="toggleStage(${i})">
+        <div class="stage-left">
+          <div class="stage-num">${i+1}</div>
+          <span class="stage-name">${s.title}</span>
+        </div>
+        <div class="stage-right">
+          <span class="stage-price">${s.price.toLocaleString('ru-RU')} ₽</span>
+          <svg class="stage-arrow ${isOpen?'open':''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
+        </div>
+      </div>
+      <div class="stage-body ${isOpen?'open':''}">
+        ${s.items.map(item => `
+          <div class="stage-item">
+            <span class="item-name">${item.name}</span>
+            ${item.price === 0
+              ? '<span class="item-free">бесплатно</span>'
+              : `<span class="item-cost">${item.price.toLocaleString('ru-RU')} ₽</span>`}
+          </div>`).join('')}
+      </div>`;
+    cont.appendChild(card);
+  });
+}
+
+function toggleStage(i) {
+  expanded[i] = !expanded[i];
+  renderStages();
+}
+
+function sendResult() {
+  const kef   = getKef();
+  const base  = 30000;
+  const work  = Math.round(base * kef);
+  const total = work + (autoOn ? 10000 : 0);
+  const typeName = type === 'service' ? 'Услуги' : 'Товары';
+
+  const text =
+    `📊 Расчёт услуг авитолога\n\n` +
+    `Категория: ${typeName}\n` +
+    `Позиций: ${pos}\n` +
+    `Коэффициент: ×${kef.toFixed(1)}\n\n` +
+    `Базовая ставка: 30 000 ₽\n` +
+    `Стоимость работы: ${work.toLocaleString('ru-RU')} ₽\n` +
+    (autoOn ? `Автоматизация: 10 000 ₽\n` : '') +
+    `\n💰 Итого: ${total.toLocaleString('ru-RU')} ₽`;
+
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.querySelector('.copy-btn');
+    const orig = btn.innerHTML;
+    btn.textContent = '✓ Скопировано — вставьте в чат';
+    btn.style.background = '#16a34a';
+    setTimeout(() => { btn.innerHTML = orig; btn.style.background = ''; }, 2500);
+    if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+  }).catch(() => {
+    alert('Скопируйте вручную:\n\n' + text);
+  });
+}
+
+renderStages();
+updateCalc();
+</script>
+</body>
+</html>
